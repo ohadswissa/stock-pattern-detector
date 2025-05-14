@@ -17,7 +17,7 @@ Key Configurations:
 The algorithm:
 - Detects local minima and maxima within a sliding window
 - Validates spacing and price change constraints (configurable)
-- Designed for 5-minute interval data across 3 days (~222 samples)
+- Designed for 5-minute interval data across 3 days (~234 samples)
 - Includes testing blocks for both real data and random simulations
 
 The `detect_cup_and_handle(prices)` function is the main interface for other components (e.g., Flask API).
@@ -139,7 +139,7 @@ def find_cup_and_handle_pattern(prices, window_size=5, price_thresholds=None, di
         }
 
     
-    # Default price thresholds (tuned for ~3 trading days of 5-minute samples ≈ 222 points)
+    # Default price thresholds (tuned for ~3 trading days of 5-minute samples ≈ 234 points)
     # These values are intentionally lenient to allow pattern detection in short, noisy sequences.
     # For longer datasets or real-world applications, adjust these thresholds upward
     # to better reflect meaningful movements and reduce false positives.
@@ -236,9 +236,9 @@ def display_patterns(prices, valid_patterns):
 
 # =====================================================================
 # Uncomment for random data testing (for testing purposes)
-# Generating random data for testing (e.g., 222 data points)
+# Generating random data for testing (e.g., 234 data points)
 # np.random.seed(42)  # Set seed for reproducibility
-# random_prices = np.random.randn(222) * 10 + 100  # Generate random prices with some volatility
+# random_prices = np.random.randn(234) * 10 + 100  # Generate random prices with some volatility
 
 # This mimics the DataFrame you'd have from reading a CSV
 # df = pd.DataFrame({'Close': random_prices})

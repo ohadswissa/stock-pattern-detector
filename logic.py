@@ -23,8 +23,8 @@ The algorithm:
 The `detect_cup_and_handle(prices)` function is the main interface for other components (e.g., Flask API).
 """
 
-import numpy as np
-import pandas as pd
+# import numpy as np 
+# import pandas as pd
 
 # ===============================================================
 # Local extrema detection — identify highs and lows in price data
@@ -125,6 +125,15 @@ def get_min_max_indices(prices, window_size=5):
 # Main pattern detection logic
 # ==============================================================
 
+"""
+NOTE:
+- This implementation currently uses nested loops to scan over all combinations of local maxima and minima (a, b, c, d, e).
+- While it doesn't scan the full O(n^5) space (since it only iterates extrema and applies early pruning),
+  the worst-case complexity is approximately O(m^5), where m = number of extrema points.
+- This is acceptable for short sequences (~200-300 points), but could be costly on longer or noisy series.
+- Future optimization (see TODO below) should include constrained windowed searches to reduce computation time.
+"""
+
 def find_cup_and_handle_pattern(prices, window_size=5, price_thresholds=None, distance_thresholds=None):
     
     valid_patterns = []
@@ -160,8 +169,16 @@ def find_cup_and_handle_pattern(prices, window_size=5, price_thresholds=None, di
     # Iterate over the maxima and minima lists.
     for i in range(len(maxima) - 4):  # We need at least 5 points: a, b, c, d, e.
         a = maxima[i]
-        
-         # Check for the corresponding 'b' (minima after 'a').
+
+        # TODO:
+        # Optimize this brute-force search by limiting the search window size between each pair (a-b, b-c, c-d, d-e).
+        # This can reduce the complexity from O(m^5) to something closer to O(m^2–m^3) by avoiding unnecessary combinations.
+        # For example:
+        #   - Look for b within a sliding window after a.
+        #   - Limit c to points close to a in price and within b+N.
+        #   - Use early exit (return True) once a valid pattern is found.
+
+        # Check for the corresponding 'b' (minima after 'a').
         for b in minima:
             if b > a and distance_is_valid(a, b, distance_thresholds, 'a_b'):
                 # Check the price difference condition immediately.

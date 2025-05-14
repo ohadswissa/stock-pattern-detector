@@ -5,34 +5,49 @@ This module exposes a lightweight API endpoint for checking whether a given stoc
 (from the Magnificent 7) currently exhibits a cup-and-handle pattern.
 
 It works in conjunction with:
-- `fetch_data.py`: updates local CSV files every 5 minutes.
-- `logic.py`: contains the detection algorithm.
+- `fetch_data.py`: fetches and stores data into a SQLite DB
+- `logic.py`: contains the detection algorithm
 
 Usage:
-POST /check_pattern.
-Payload: { "symbol": "AAPL" }.
-Response: { "symbol": "AAPL", "cup_and_handle_detected": true }.
+POST /check_pattern
+Payload: { "symbol": "AAPL" }
+Response: { "symbol": "AAPL", "cup_and_handle_detected": true }
 
 Note:
 This server is intended for local execution and demonstration purposes only.
 """
 
+
 # ===============================
 # Imports — load required tools
 # ===============================
 
-from flask import Flask, request, jsonify 
+from flask import Flask, request, jsonify
+import json
 # Flask: framework to build web API.
 # request: lets us read JSON input from POST requests.
 # jsonify: helps us send back clean JSON responses.
-
 from logic import detect_cup_and_handle
 # Imports the relevant function from logic.py to check the pattern.
-
 import pandas as pd
-# For loading and manipulating data (CSV files).
+import sqlite3
+from flask import make_response
 
-import os
+
+def load_from_sqlite(symbol):
+    """
+    Load latest stock data for a given symbol from SQLite DB,
+    ordered by timestamp ascending.
+    Returns a pandas DataFrame.
+    """
+    conn = sqlite3.connect("stock_data.db")
+    df = pd.read_sql_query(
+        "SELECT * FROM stock_data WHERE symbol = ? ORDER BY timestamp ASC",
+        conn,
+        params=(symbol,)
+    )
+    conn.close()
+    return df
 
 # ===================================
 # Create the Flask app (web server)
@@ -72,45 +87,42 @@ def check_pattern():
         - 404 Not Found if no CSV exists
         - 500 Internal Server Error for unexpected issues
     """
-    data = request.get_json()  # Read the incoming JSON data.
-    symbol = data.get("symbol", "").upper()  # Extract the symbol and make it uppercase.
+    # Read and parse the incoming POST request body as JSON.
+    data = request.get_json()
+    symbol = data.get("symbol", "").upper()
 
-    # Check if the symbol is valid
+    # Validate that the symbol is one of the tracked stocks.
     if symbol not in STOCK_SYMBOLS:
         return jsonify({"error": f"Invalid stock symbol '{symbol}'"}), 400
-
-    # Use startswith to find files that start with the stock symbol.
-    files = [f for f in os.listdir(DATA_DIR) if f.startswith(symbol) and f.endswith('.csv')]
-    
-    # Check if the file exists.
-    if not files:
-        return jsonify({"error": f"Symbol '{symbol}' not found"}), 404
-
+   
+    # Attempt to load stock price data from the database.
     try:
-        # Load the stock data from the first matching file.
-        file_path = os.path.join(DATA_DIR, files[0])
-        df = pd.read_csv(file_path)
-
-        # Check for the price column (make sure it exists, it could be "Close" or "price").
-        if "Close" not in df.columns:
-            return jsonify({"error": "Close column not found in the data"}), 400
-
-        # Convert the "Close" column into a list of numbers.
-        prices = df["Close"].tolist()
-
-        # Run the cup and handle pattern detection.
-        result = detect_cup_and_handle(prices)
-
-        # Return the result as a JSON response.
-        return jsonify({
-            "symbol": symbol,
-            "cup_and_handle_detected": result
-        })
-    
+        df = load_from_sqlite(symbol)
+        if df.empty:
+            return jsonify({"error": f"No data found in DB for symbol '{symbol}'"}), 404
     except Exception as e:
-        # If there's any error, return a 500 error with the exception message.
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Database error: {str(e)}"}), 500
+    
+    # Verify that 'close' price data exists
+    if "close" not in df.columns:
+        return jsonify({"error": "close column not found in the data"}), 400
+    
+    # Extract the close prices into a Python list for analysis.
+    prices = df["close"].tolist()
+   
+    # Run the pattern detection algorithm from logic.py.
+    result = detect_cup_and_handle(prices)
 
+    response_data = {
+    "symbol": symbol,
+    "cup_and_handle_detected": result
+}
+
+    return make_response(
+        json.dumps(response_data, indent=2),
+        200,
+        {"Content-Type": "application/json"}
+)
 # ===============================
 # Run the Flask app locally
 # ===============================

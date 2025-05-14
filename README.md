@@ -1,16 +1,16 @@
 # stock-pattern-detector
 
-**Proof-of-Concept platform for detecting cup-and-handle stock patterns using local data and a simple API.**
+**Proof-of-Concept platform for detecting cup-and-handle stock patterns using 3-day rolling SQLite storage and a lightweight Flask API.**
 
 ---
 
 ## 🔍 Project Overview
 
-This project implements a local stock recommendation engine that:
-- Collects stock prices every **5 minutes** for the **Magnificent 7** stocks (AAPL, MSFT, GOOGL, AMZN, NVDA, META, TSLA).
-- Maintains only the **last 3 trading days** of data.
-- Detects the **cup-and-handle** pattern in real-time using a custom algorithm.
-- Exposes a **Flask API** that returns a simple yes/no answer per stock.
+This project implements a local stock analysis engine that:
+- Collects stock prices every **5 minutes** for the **Magnificent 7** stocks (AAPL, MSFT, GOOGL, AMZN, NVDA, META, TSLA)
+- Maintains only the **last 3 trading days** of data (rolling window)
+- Detects the **cup-and-handle** pattern using a configurable, generic algorithm
+- Exposes a **Flask API** for querying pattern presence per stock
 
 The project was developed as a **POC** and can be extended to support additional pattern types, thresholds, or a broader backend.
 
@@ -34,6 +34,8 @@ We validate each candidate pattern using:
 All thresholds are adjustable, making this logic reusable for other pattern detection tasks.
 
 ---
+
+
 
 ## 🛠️ Setup Instructions
 
